@@ -1,46 +1,26 @@
 <script setup lang="ts">
 
-interface Idiom {
-  derivation?: string
-  example?: string
-  explanation?: string
-  pinyin: string
-  word: string
-  abbreviation?: string
-}
-
-interface Word {
-  explanation?: string
-  more?: string
-  oldword?: string
-  pinyin: string
-  radicals?: string
-  strokes?: string
-  word: string
-}
-
 let isStarted = $ref(false)
-
-let idioms: Idiom[] = reactive([])
-let words: Map<string, string> = reactive([])
+let idioms: Map<string, string>
+let words: Map<string, string>
 
 onMounted(async() => {
-  let { data: idiomsData } = await useFetch('/data/idiom.json')
-  idiomsData = JSON.parse(idiomsData.value as string).map(w => [w.word, w.pinyin])
-  idioms = new Map(idiomsData)
+  const { data: idiomsData } = await useFetch('/data/idiom.json')
+  const idiomsArr = JSON.parse(idiomsData.value as string).map((w: Idiom) => [w.word, w.pinyin]) as [string, string][]
+  idioms = new Map(idiomsArr)
 
-  let { data: wordData } = await useFetch('/data/word.json')
-  wordData = JSON.parse(wordData.value as string).map(w => [w.word, w.pinyin])
-  words = new Map(wordData)
+  const { data: wordData } = await useFetch('/data/word.json')
+  const wordArr = JSON.parse(wordData.value as string).map((w: Word) => [w.word, w.pinyin]) as [string, string][]
+  words = new Map(wordArr)
 })
 
-const getRandomItem = (map: Map) => {
+const getRandomItem = (map: Map<string, string>): Idiom => {
   const arr = [...map.keys()]
   const len = arr.length
   const key = arr[Math.floor(Math.random() * len)]
   return {
     word: key,
-    pinyin: map.get(key),
+    pinyin: map.get(key) as string,
   }
 }
 
@@ -57,13 +37,13 @@ const getXItem = (str: string, separator: string, index: number) => {
   return str.split(separator).at(index)
 }
 
-const idiom2Pinyin = (idiom) => {
+const idiom2Pinyin = (idiom: string) => {
   return idiom.split('').map(word => words.get(word)).join(' ')
 }
 
 const check = () => {
   const lastIdiom = displayList.at(-1) as Idiom
-  const lastWord = getXItem(lastIdiom.word, '', 0)
+  const lastWord = getXItem(lastIdiom.word, '', -1)
   const firstWord = getXItem(newIdiom, '', 0)
   const lastPinyin = getXItem(lastIdiom.pinyin, ' ', -1)
   const newPinyin = idiom2Pinyin(newIdiom)
@@ -89,14 +69,15 @@ const check = () => {
     </button>
     <!-- 游戏区域 -->
     <div v-else flex flex-col items-center gap-3>
-      <ul>
+      <!-- <ul max-h-40 overflow-scroll>
         <li
-          v-for="word, index of displayList"
+          v-for="item, index of displayList"
           :key="index"
         >
-          {{ word.word }}
+          <Idiom :item="item" />
         </li>
-      </ul>
+      </ul> -->
+      <GameArea :list="displayList" />
       <input v-model="newIdiom" w-50 type="text" placeholder="输入成语...">
       <button border-1 w-30 @click="check">
         确定
